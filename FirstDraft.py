@@ -4,17 +4,17 @@ import pygame as pg
 
 class Singleton():
     def __init__ (self):
-        self.colours = {BLACK: (0,0,0), 
-                        WHITE: (255,255,255),
-                        ROAD: (0,0,0),
-                        DIRT: (139,69,19),
-                        SAND: (218,165,32),
-                        MUD:  (139,69,19),
-                        WATER: (0,191,255),
-                        ROCK: (47,79,79),
-                        RED: (255,0,0),}
+        self.colours = {"BLACK": (0,0,0), 
+                        "WHITE": (255,255,255),
+                        "ROAD": (0,0,0),
+                        "DIRT": (139,69,19),
+                        "SAND": (218,165,32),
+                        "MUD":  (139,69,19),
+                        "WATER": (0,191,255),
+                        "ROCK": (47,79,79),
+                        "RED": (255,0,0),}
 
-        self.terrain_colour = (ROAD,DIRT,2,3,4,5,6,7,8,ROCK)
+        self.terrain_colour = ("ROAD","DIRT",2,3,4,5,6,7,8,"ROCK")
 
         self. direction = ( (1,0,180),
                             (1,-1,135),
@@ -34,8 +34,8 @@ class Singleton():
         windowWidth = info.current_w-150
         windowHeight = info.current_h-100
 
-        self.screen_dim (900,600)
-     
+        self.screen_dim = (900,600)
+        self.screen = pg.display.set_mode(self.screen_dim)
         return
 
 class World ():
@@ -68,9 +68,10 @@ class World ():
 
 class Piece ():
 
-    def __init__(self, pos=(0, 0), size=20, image="Yellow_Car"):
-        
-        self.original_image = pg.image.load(images[image])
+    def __init__(self,g, pos=(50, 50), size=20, image="Yellow_Car"):
+        self.g = g
+        self.size = size
+        self.original_image = pg.image.load(g.images[image])
         self.rescale()
         self.rect = self.image.get_rect()
         self.rect.center = pos
@@ -81,7 +82,7 @@ class Piece ():
     def update(self,position, dir=0,image = "No Change"):
         
         if image != "No Change":
-            self.original_image = pg.image.load(images[image])
+            self.original_image = pg.image.load(g.images[image])
             self.rescale()
             self.rect = self.image.get_rect()
         self.rect.centery=position[0]
@@ -95,21 +96,22 @@ class Piece ():
         self.print()
         return
 
-    def rescale(self)
+    def rescale(self):
         image_width =  self.original_image.get_width()
         image_height =  self.original_image.get_height()
-        iscaleh = int(size*0.95)
+        iscaleh = int(self.size*0.95)
         iscalew = int(iscaleh/image_height*image_width)  
         self.original_image = pg.transform.scale(self.original_image,(iscalew,iscaleh))
         self.image = self.original_image
         return
 
     def print(self):
-        screen.blit(self.image, self.rect)
+        self.g.screen.blit(self.image, self.rect)
         return
 
 class Board():
-    def __init__ (self, world_size,screen_dim):
+    def __init__ (self, g, world_size,screen_dim):
+        self.g=g
         self.screen_size = screen_dim
         self.header = self.screen_size[0] - self.screen_size[1]
         self.screen_height = self.screen_size[1]
@@ -126,13 +128,15 @@ class Board():
                 rec_d =  self.border +r * self.square_size 
                 rec_a =  self.border +  c * self.square_size
                 square_rect = pg.Rect( rec_a,rec_d, self.square_size, self.square_size)
-                square_colour = COLOURS[terrain[r][c]]
+                square_colour = g.COLOURS[terrain[r][c]]
                 pg.draw.rect(screen,square_colour,square_rect)
 
         return
 
 class Guage():
-    def __init__(self, name="Test",size=[80,20], position =(60,600) ,value = 10, max = 20 ):
+    def __init__(self, g, name="Test",size=[80,20], position =(60,600) ,value = 10, max = 20 ):
+        self.g = g
+        self.size=size
         self.top = position [0]
         self.left = position [1]
         self.width = size[0] 
@@ -146,24 +150,24 @@ class Guage():
         fontsize =self.height
               
         self.font = pg.font.Font(None, fontsize) 
-        self.text = self.font.render(name, True, WHITE) 
+        self.text = self.font.render(name, True, self.g.colours["WHITE"]) 
         self.textRect = self.text.get_rect() 
         self.textRect.top =self.top-self.textRect.height*1.05
         self.textRect.left =self.left
-        screen.blit(self.text,self.textRect)
+        self.g.screen.blit(self.text,self.textRect)
 
-        self.text_max = self.font.render(str(self.max), True, WHITE) 
+        self.text_max = self.font.render(str(self.max), True,self.g.colours["WHITE"]) 
         self.textRect_max = self.text.get_rect() 
         self.textRect_max.centery =self.top+self.height/2
         self.textRect_max.left =self.left+self.width*1.05
        
-        screen.blit(self.text_max,self.textRect_max)
+        self.g.screen.blit(self.text_max,self.textRect_max)
 
-        pg.draw.rect(screen,WHITE,self.main)
-        pg.draw.rect(screen,RED,self.red)
+        pg.draw.rect(g.screen,self.g.colours["WHITE"],self.main)
+        pg.draw.rect(g.screen,self.g.colours["RED"],self.red)
         self.needle_across = self.value/self.max* self.width
         self.thickness=3
-        pg.draw.line(screen,BLACK,(self.needle_across+self.left,self.top),(self.needle_across+self.left,self.top+self.height),self.thickness)
+        pg.draw.line(g.screen,self.g.colours["BLACK"],(self.needle_across+self.left,self.top),(self.needle_across+self.left,self.top+self.height),self.thickness)
         return   
     
     def update (self, value, max):
@@ -172,28 +176,21 @@ class Guage():
 
         self.max= max
         self.needle_across = self.value/self.max* self.width
-        pg.draw.rect(screen,WHITE,self.main)
+        pg.draw.rect(self.g.screen,self.g.colours["WHITE"],self.main)
         
        
-        pg.draw.rect(screen,RED,self.red)
-        pg.draw.line(screen,BLACK,(self.needle_across+self.left,self.top),(self.needle_across+self.left,self.top+self.height),self.thickness)
+        pg.draw.rect(self.g.screen,self.g.colours["RED"],self.red)
+        pg.draw.line(self.g.screen,self.g.colours["BLACK"],(self.needle_across+self.left,self.top),(self.needle_across+self.left,self.top+self.height),self.thickness)
         
         
-        self.text_max = self.font.render(str(self.max), True, WHITE) 
+        self.text_max = self.font.render(str(self.max), True, self.g.colours["WHITE"]) 
               
        
-        screen.blit(self.text_max,self.textRect_max)
+        g.screen.blit(self.text_max,self.textRect_max)
         
         
         return
 
-
-
-
-
-
-
- 
 
 class GameControl():
     def __init__ (self):
@@ -205,12 +202,12 @@ class GameControl():
         #initiate objects
         
         
-        self.car = Car()
-        self.world = World()
+        self.car = Car(g)
+        self.world = World(g)
 
         self.stash = []
         for i in range (world.stashes):
-            append.stash(Stash (world.stashes[i]))
+            self.stash.append(Stash (world.stashes[i]))
 
         #set screen size
         self.screen = pg.display.set_mode(g.screen_dim)
@@ -241,3 +238,14 @@ class GameControl():
         return centre
 
 
+g=Singleton()
+player = Piece(g)
+pg.display.flip()
+time.sleep(10)
+for i in range (8):
+    
+        player.update([30,30],i,"Petrol_Station")
+        pg.display.flip()
+        time.sleep(0.1)
+    
+time.sleep(10)
