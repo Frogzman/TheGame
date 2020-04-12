@@ -28,12 +28,22 @@ class Singleton():
         self. images = {    "Yellow_Car": "y_car.png",
                             "Petrol_Station": "petrol.png"}
 
-
+        self.terrain = [[9,9,9,9,9,9,9,9,9,9],
+                        [9,1,1,1,1,1,1,0,1,9],
+                        [9,1,1,1,1,0,0,0,1,9],
+                        [9,1,1,1,0,1,1,0,1,9],
+                        [9,1,1,1,0,1,1,0,1,9],
+                        [9,1,1,1,1,0,1,0,1,9],
+                        [9,1,1,1,1,0,1,0,1,9],
+                        [9,1,1,1,1,1,0,0,1,9],
+                        [9,1,1,1,1,1,1,0,1,9],
+                        [9,9,9,9,9,9,9,0,9,9]]
         pg.init()
         info = pg.display.Info()
         windowWidth = info.current_w-150
         windowHeight = info.current_h-100
-
+        
+        #set screen size (across, down)
         self.screen_dim = (900,600)
         self.screen = pg.display.set_mode(self.screen_dim)
         return
@@ -61,15 +71,84 @@ class World ():
     
     def checkstash(self,position):
         stash = -1
-        for i in range (len (self.stash)):
-            if position[0]==self.stash[i][1][1] and position[1]==self.stash[i][1][0]:
+        for i in range (len (self.stashes)):
+            if position[0]==self.stashes[i][1][0] and position[1]==self.stashes[i][1][1]:
                 stash = i
         return stash
 
+class Car ():
+
+    def __init__ (self,attributes={"Fuel":{"Capacity":10.0,"Level":8.0,"Economy":1.0,"Factors":[1.0,1.5]}},pose=[1,7,0]):
+        
+        self.attributes = attributes
+
+        #pose [row, col , direction row 1 d -1 u, direction]
+        self.pose = pose
+        
+    def add_attribute (self,  attribute="Fuel", volume = 1):
+        taken = 0.0
+        start_level = self.attributes [attribute]["Level"]
+        level = self.attributes [attribute]["Level"]
+        capacity = self.attributes [attribute]["Capacity"]
+        level = level  + volume
+        if level  > capacity:
+            level = capacity
+            print (attribue," Stoarge Full", level )
+        else:
+        
+            print (attribute," Stoarge is",int(level/capacity*100),"% full.  With", level )
+        taken = level - start_level
+        self.attributes [attribute]["Level"] = level
+        return taken
+
+    def drive (self, terrain):
+        distance = 0
+        direction_factor = 1.0
+        if terrain == 9:
+            return (distance)
+        if (self.pose[2] in (1,3,5,7)):
+            direction_factor = 1.41
+        
+
+        for attribute in self.attributes: 
+            level = self.attributes [attribute]["Level"]
+            economy = self.attributes [attribute]["Economy"]
+            factors = self.attributes [attribute]["Factors"]
+            capacity = self.attributes [attribute]["Capacity"]
+            level = level - economy*factors[terrain]*direction_factor
+            if level<0:
+                level = 0
+                self.attributes [attribute]["Level"] = level
+                print ("Out of ",attribute)
+                return (distance)
+            else: 
+                distance = 1
+                self.pose[0] = self.pose[0] + g.direction [car.pose[2]][0]
+                self.pose[1] = self.pose[1] + g.direction [car.pose[2]][1]
+                self.attributes [attribute]["Level"] = level
+                print ("Storage is ",int(level/capacity*100),"% full.  With", level)
+
+        return (distance)
+
+    def turn  (self, way):
+        if way == "r":
+            temp_direction = self.pose[2] + 1
+            if temp_direction == 8:
+                temp_direction = 0
+            
+        if way == "l":
+            temp_direction = self.pose[2] - 1
+            if temp_direction == -1:
+                temp_direction = 7
+
+        self.pose[2] = temp_direction
+
+        return
+
 class Piece ():
 
-    def __init__(self,g, pos=(50, 50), size=20, image="Yellow_Car"):
-        self.g = g
+    def __init__(self, pos=(50, 50), size=20, image="Yellow_Car"):
+        
         self.size = size
         self.original_image = pg.image.load(g.images[image])
         self.rescale()
@@ -106,130 +185,145 @@ class Piece ():
         return
 
     def print(self):
-        self.g.screen.blit(self.image, self.rect)
+        g.screen.blit(self.image, self.rect)
         return
 
 class Board():
-    def __init__ (self, g, world_size,screen_dim):
-        self.g=g
-        self.screen_size = screen_dim
+    def __init__ (self, world_size = (10,10), terrain =[]):
+        
+        self.terrain=terrain
+        self.screen_size = g.screen_dim
         self.header = self.screen_size[0] - self.screen_size[1]
         self.screen_height = self.screen_size[1]
         self.world_size = world_size
         self.border = self.screen_height * 0.05
-        self.square_size = (self.screen_height-self.border*2)/self.world_size
+        self.square_size = (self.screen_height-self.border*2)/self.world_size[0]
         return
 
-    def print (self, terrain,screen):
-        for r in range (self.world_size):
-            for c in range (self.world_size):
+    def print (self):
+
+        #Loop through columns then row
+        for r in range (self.world_size[0]):
+            for c in range (self.world_size[1]):
                 
                 
+
+                #calc position for square
                 rec_d =  self.border +r * self.square_size 
                 rec_a =  self.border +  c * self.square_size
+                
+                #define rectangle for sqaure
                 square_rect = pg.Rect( rec_a,rec_d, self.square_size, self.square_size)
-                square_colour = g.COLOURS[terrain[r][c]]
-                pg.draw.rect(screen,square_colour,square_rect)
+                #get index type of terrain
+                colour_index = self.terrain[r][c]
+                #get square type from index
+                square_type = g.terrain_colour [colour_index]
+                #get colour from the sqaure type
+                square_colour = g.colours[square_type]
+                #draw square to canvas
+                pg.draw.rect(g.screen,square_colour,square_rect)
 
         return
 
 class Guage():
-    def __init__(self, g, name="Test",size=[80,20], position =(60,600) ,value = 10, max = 20 ):
-        self.g = g
+    def __init__(self, name="Test",size=[80,20], position =(60,600) ,value = 10, maxm = 20 ):
+       
         self.size=size
         self.top = position [0]
         self.left = position [1]
         self.width = size[0] 
         self.height =  size[1]
         self.value = value
-        self.max = max
+        self.max = maxm
         self.main = pg.Rect(self.left,self.top,self.width,self.height)
         self.red = pg.Rect(self.left,self.top,self.width*0.1,self.height)
-        
-        
-        fontsize =self.height
-              
+        self.name = name   
+        fontsize =int(self.height)
+        self.thickness=3     
         self.font = pg.font.Font(None, fontsize) 
-        self.text = self.font.render(name, True, self.g.colours["WHITE"]) 
-        self.textRect = self.text.get_rect() 
-        self.textRect.top =self.top-self.textRect.height*1.05
-        self.textRect.left =self.left
-        self.g.screen.blit(self.text,self.textRect)
-
-        self.text_max = self.font.render(str(self.max), True,self.g.colours["WHITE"]) 
-        self.textRect_max = self.text.get_rect() 
-        self.textRect_max.centery =self.top+self.height/2
-        self.textRect_max.left =self.left+self.width*1.05
-       
-        self.g.screen.blit(self.text_max,self.textRect_max)
-
-        pg.draw.rect(g.screen,self.g.colours["WHITE"],self.main)
-        pg.draw.rect(g.screen,self.g.colours["RED"],self.red)
-        self.needle_across = self.value/self.max* self.width
-        self.thickness=3
-        pg.draw.line(g.screen,self.g.colours["BLACK"],(self.needle_across+self.left,self.top),(self.needle_across+self.left,self.top+self.height),self.thickness)
+        self.print()
         return   
     
     def update (self, value, max):
         
         self.value = value
-
         self.max= max
-        self.needle_across = self.value/self.max* self.width
-        pg.draw.rect(self.g.screen,self.g.colours["WHITE"],self.main)
-        
-       
-        pg.draw.rect(self.g.screen,self.g.colours["RED"],self.red)
-        pg.draw.line(self.g.screen,self.g.colours["BLACK"],(self.needle_across+self.left,self.top),(self.needle_across+self.left,self.top+self.height),self.thickness)
-        
-        
-        self.text_max = self.font.render(str(self.max), True, self.g.colours["WHITE"]) 
-              
-       
-        g.screen.blit(self.text_max,self.textRect_max)
-        
-        
+        self.print()      
         return
+
+
+
+    def print(self):
+        self.needle_across = self.value/self.max* self.width
+        
+        self.text = self.font.render(self.name, True, g.colours["WHITE"]) 
+        self.textRect = self.text.get_rect() 
+        self.textRect.top =self.top-self.textRect.height*1.05
+        self.textRect.left =self.left
+        g.screen.blit(self.text,self.textRect)
+        
+        self.text_max = self.font.render(str(self.max), True,g.colours["WHITE"]) 
+        self.textRect_max = self.text.get_rect() 
+        self.textRect_max.centery =self.top+self.height/2
+        self.textRect_max.left =self.left+self.width*1.05
+        g.screen.blit(self.text_max,self.textRect_max)
+
+        pg.draw.rect(g.screen,g.colours["WHITE"],self.main)
+        pg.draw.rect(g.screen,g.colours["RED"],self.red)     
+        pg.draw.line(g.screen,g.colours["BLACK"],(self.needle_across+self.left,self.top),(self.needle_across+self.left,self.top+self.height),self.thickness)
+
+        return
+
 
 
 class GameControl():
     def __init__ (self):
         
-        #Get global variable
         
-        g = Singleton()
-
         #initiate objects
         
         
-        self.car = Car(g)
-        self.world = World(g)
+        self.car = Car()
+        self.world = World()
 
-        self.stash = []
-        for i in range (world.stashes):
-            self.stash.append(Stash (world.stashes[i]))
+        #self.stash = []
+        #for i in range (world.stashes):
+        #    self.stash.append( (world.stashes[i]))
 
-        #set screen size
-        self.screen = pg.display.set_mode(g.screen_dim)
-        pg.display.set_caption("Car Wars")
-
+        
         #initiate board
-        self.board = Board (g.board_size,g.screen_dim)
+        self.board = Board (self.world.size,self.world.terrain)
 
         #set up car graphics
         car_size = self.board.square_size
-        self.g_player = Piece(world.start, car_size)   
-
-
-        self.guage = Guage(attribute[0][0],(car.attribute[0][1],car.attribute[0][2]))
+        self.g_player = Piece(self.world.start, car_size)   
+        count = 0
+        self.guages =[]
+        for attribute in self.car.attributes:
+        
+            name= attribute
+            value = self.car.attributes [attribute]["Level"]
+            maxm = self.car.attributes [attribute]["Capacity"]
+            height = g.screen_dim[1]/10
+            width = g.screen_dim [0] - (self.world.size [1] * self.board.square_size - self.board.border*2)*1.2
+            across =  self.car.attributes [attribute]["Level"] + self.board.border
+            down = count * height * 1.1
+            size=[width,height] 
+            position =(down,across) 
+            count = count + 1
+        
+            self.guages.append(Guage(name, size, position, value, maxm))
 
         #set up graphics for stashes
         self.g_stash = []
-        for i in range (len (g.stashes)):
-            stash_postion = [self.stash[i][1][1],self.stash[i][1][0]]  
-            centre = calc_centre(stash_position)
-            self.g_stash.append(Piece(centre,board.square_size,world.stashes[i][0]))
-
+        for i in range (len (self.world.stashes)):
+            stash_position = [self.world.stashes[i][1][1],self.world.stashes[i][1][0]]  
+            centre = self.calc_centre(stash_position)
+            self.g_stash.append(Piece(centre,self.board.square_size,self.world.stashes[i][0]))
+    
+        pg.display.flip()
+        time.sleep(10)
+        return
 
     def calc_centre(self, position):
         rec_d =  self.board.border + position[0] * self.board.square_size + self.board.square_size/2
@@ -239,13 +333,8 @@ class GameControl():
 
 
 g=Singleton()
-player = Piece(g)
-pg.display.flip()
-time.sleep(10)
-for i in range (8):
-    
-        player.update([30,30],i,"Petrol_Station")
-        pg.display.flip()
-        time.sleep(0.1)
-    
-time.sleep(10)
+game=GameControl()
+
+
+
+
