@@ -65,8 +65,8 @@ class World ():
         self.stashes =   [ ["Petrol_Station",[5,7,3]],
                            ["Petrol_Station",[4,4,10]]]
 
-        self.start = [1,7]
-        self.goal = [9,7]
+        self.start = [7,1]
+        self.goal = [7,9]
         return
     
     def checkstash(self,position):
@@ -78,7 +78,7 @@ class World ():
 
 class Car ():
 
-    def __init__ (self,attributes={"Fuel":{"Capacity":10.0,"Level":8.0,"Economy":1.0,"Factors":[1.0,1.5]}},pose=[1,7,0]):
+    def __init__ (self,attributes={"Fuel":{"Capacity":10.0,"Level":8.0,"Economy":1.0,"Factors":[1.0,1.5]}},pose=[1,7,4]):
         
         self.attributes = attributes
 
@@ -147,14 +147,15 @@ class Car ():
 
 class Piece ():
 
-    def __init__(self, pos=(50, 50), size=20, image="Yellow_Car"):
+    def __init__(self, position=(50, 50), size=20, image="Yellow_Car",angle=0):
+        
         
         self.size = size
         self.original_image = pg.image.load(g.images[image])
         self.rescale()
         self.rect = self.image.get_rect()
-        self.rect.center = pos
-        self.angle = 0
+        self.rect.center = position
+        self.angle = angle
         self.image = pg.transform.rotate(self.original_image, self.angle)
         self.print()
         
@@ -164,8 +165,8 @@ class Piece ():
             self.original_image = pg.image.load(g.images[image])
             self.rescale()
             self.rect = self.image.get_rect()
-        self.rect.centery=position[0]
-        self.rect.centerx=position[1]
+        self.rect.centerx=position[0]
+        self.rect.centery=position[1]
         self.angle  = g.direction [dir][2]
         self.image = pg.transform.rotate(self.original_image, self.angle)
           # Value will reapeat after 359. This prevents angle to overflow.
@@ -198,6 +199,7 @@ class Board():
         self.world_size = world_size
         self.border = self.screen_height * 0.05
         self.square_size = (self.screen_height-self.border*2)/self.world_size[0]
+        self.print()
         return
 
     def print (self):
@@ -283,7 +285,7 @@ class GameControl():
         #initiate objects
         
         
-        self.car = Car()
+        self.car = Car({"Fuel":{"Capacity":10.0,"Level":8.0,"Economy":1.0,"Factors":[1.0,1.5]}},[7,1,0])
         self.world = World()
 
         #self.stash = []
@@ -296,18 +298,25 @@ class GameControl():
 
         #set up car graphics
         car_size = self.board.square_size
-        self.g_player = Piece(self.world.start, car_size)   
+        
+        car_centre = self.calc_centre([self.car.pose[0],self.car.pose[1]])
+
+        angle = g.direction[self.car.pose[2]][2]
+        self.g_player = Piece(car_centre, car_size,"Yellow_Car",angle)   
         count = 0
         self.guages =[]
+        
+        
+        
         for attribute in self.car.attributes:
         
             name= attribute
             value = self.car.attributes [attribute]["Level"]
             maxm = self.car.attributes [attribute]["Capacity"]
-            height = g.screen_dim[1]/10
-            width = g.screen_dim [0] - (self.world.size [1] * self.board.square_size - self.board.border*2)*1.2
-            across =  self.car.attributes [attribute]["Level"] + self.board.border
-            down = count * height * 1.1
+            height = g.screen_dim[1]/15
+            width = g.screen_dim [0] - (self.world.size [1] * self.board.square_size - self.board.border*2)*1.4
+            across =  (self.world.size [1] * self.board.square_size + self.board.border*1.5)            
+            down = (count * height) * 1.2+self.board.border+self.board.square_size
             size=[width,height] 
             position =(down,across) 
             count = count + 1
