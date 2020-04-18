@@ -1,4 +1,5 @@
 import sys
+import os
 import time
 import pygame as pg
 
@@ -25,8 +26,17 @@ class Singleton():
                             (0,1,270),
                             (1,1,225))
 
+        self.current_path = os.path.dirname(__file__) # Where your .py file is located
+        self.resource_path = os.path.join(self.current_path, 'resources') # The resource folder path
+        self.image_path = os.path.join(self.resource_path, 'images') # The image folder path
+
+        
+        
         self. images = {    "Yellow_Car": "y_car.png",
-                            "Petrol_Station": "petrol.png"}
+                            "Petrol_Station": "petrol.png",
+                            "Left_Pedal": "arrowleft.png",
+                            "Right_Pedal": "arrowright.png",
+                            "Gas_Pedal": "arrowforward.png"}
 
         self.terrain = [[9,9,9,9,9,9,9,9,9,9],
                         [9,1,1,1,1,1,1,0,1,9],
@@ -151,7 +161,7 @@ class Piece ():
         
         
         self.size = size
-        self.original_image = pg.image.load(g.images[image])
+        self.original_image = pg.image.load(os.path.join(g.image_path, g.images[image]))
         self.rescale()
         self.rect = self.image.get_rect()
         self.rect.center = position
@@ -278,6 +288,8 @@ class Guage():
 
 
 
+
+
 class GameControl():
     def __init__ (self):
         
@@ -304,12 +316,13 @@ class GameControl():
         angle = g.direction[self.car.pose[2]][2]
         self.g_player = Piece(car_centre, car_size,"Yellow_Car",angle)   
         count = 0
+        
+        
+        #graphics for guages set up
+        
         self.guages =[]
-        
-        
-        
+
         for attribute in self.car.attributes:
-        
             name= attribute
             value = self.car.attributes [attribute]["Level"]
             maxm = self.car.attributes [attribute]["Capacity"]
@@ -332,6 +345,26 @@ class GameControl():
     
         pg.display.flip()
         time.sleep(10)
+        
+        #Graphics for controls
+
+        pedal_size = g.screen_dim[1]/10
+        direction_down = g.screen_dim[1] - pedal_size*2  -self.board.border
+        left_across = across =  (self.world.size [1] * self.board.square_size + self.board.border*1.5)  + pedal_size 
+        right_across =across =  (self.world.size [1] * self.board.square_size + self.board.border*1.5) + pedal_size * 2 
+        gas_down = direction_down + pedal_size * 1.1
+        gas_across = (left_across + right_across)/2
+        self.g_left = Piece((left_across,direction_down), pedal_size, "Left_Pedal", 0)
+        self.g_right = Piece((right_across,direction_down), pedal_size, "Right_Pedal", 0)
+        self.g_drive = Piece((gas_across,gas_down), pedal_size, "Gas_Pedal", 0)
+
+        #Display canvas
+        pg.display.flip()
+        time.sleep(30)
+        
+        
+        
+        
         return
 
     def calc_centre(self, position):
