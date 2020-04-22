@@ -53,6 +53,9 @@ class Singleton():
         windowWidth = info.current_w-150
         windowHeight = info.current_h-100
         
+        
+
+
         #set screen size (across, down)
         self.screen_dim = (900,600)
         self.screen = pg.display.set_mode(self.screen_dim)
@@ -358,17 +361,21 @@ class GameControl():
 
         #Display canvas
         pg.display.flip()
+
+        self.run()
       
         
-
+    def run (self):
         running = True
         while (running):
 
             for event in pg.event.get():
+                
+                #manage quit
                 if event.type == pg.QUIT:
                    
                     running = False
-                    
+                #in press mouse check if on a pedal movement    
                 elif event.type == pg.MOUSEBUTTONDOWN:
                     mousex, mousey = event.pos
                     if self.g_drive.rect.collidepoint(mousex, mousey):
@@ -377,25 +384,42 @@ class GameControl():
                         car_down = self.car.pose[1]
                         terrain = self.world.terrain[car_down][car_across]
                         self.car.drive(terrain)
-                        
+                        stash = self.world.checkstash([car_across,car_down])
+                        if stash>0:
+                            attribute = world.stashes[i][0]
+                            volume = world.stashes[i][1][2]
+                            stash_transfer = self.car.add_attribute (attribute, volume)
+                            world.stashes[stash][1][2] = volume - fuel_transfer
+                            print ("Fuel stash...",stash_transfer,"used.", world.stashes[stash][1][2],"left.")    
+                   
+
                     elif self.g_left.rect.collidepoint(mousex, mousey):
                         print('clicked on left')
                         self.car.turn("l")
-                        
-                        
+                                                
                        
                     elif self.g_right.rect.collidepoint(mousex, mousey):
                         print('clicked on right')
                         self.car.turn("r")
                     
+                    #re-print graphics
+
                     self.board.print()
                     for g_stash in self.g_stash:
                         g_stash.print()
-
                     car_centre = self.calc_centre([self.car.pose[0],self.car.pose[1]])
                     car_direction = self.car.pose[2]
                     self.g_player.update(car_centre, car_direction)                  
                     self.g_player.print()
+
+                    #update guages
+                    i=0
+                    for attribute in self.car.attributes:
+                        
+                        value = self.car.attributes [attribute]["Level"]
+                        maxm = self.car.attributes [attribute]["Capacity"]
+                        self.guages[i].update (value, maxm)
+
                     pg.display.flip()
                     
         pg.QUIT
